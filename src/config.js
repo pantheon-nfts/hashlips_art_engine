@@ -1,13 +1,16 @@
-const basePath = process.cwd();
-const { MODE } = require(`${basePath}/constants/blend_mode.js`);
-const { NETWORK } = require(`${basePath}/constants/network.js`);
+const projectPath = process.env.INIT_CWD;
+const hashlipsPath = `${__dirname}/..`;
+const projectConfig = require(`${projectPath}/config.js`).hashlips;
+
+const { MODE } = require(`${hashlipsPath}/constants/blend_mode.js`);
+const { NETWORK } = require(`${hashlipsPath}/constants/network.js`);
 
 const network = NETWORK.eth;
 
 // General metadata for Ethereum
-const namePrefix = "Your Collection";
-const description = "Remember to replace this description";
-const baseUri = "ipfs://NewUriToReplace";
+const namePrefix = projectConfig.namePrefix;
+const description = projectConfig.description;
+const baseUri = projectConfig.baseUri;
 
 const solanaMetadata = {
   symbol: "YC",
@@ -22,30 +25,13 @@ const solanaMetadata = {
 };
 
 // If you have selected Solana then the collection starts from 0 automatically
-const layerConfigurations = [
-  {
-    growEditionSizeTo: 5,
-    layersOrder: [
-      { name: "Background" },
-      { name: "Eyeball" },
-      { name: "Eye color" },
-      { name: "Iris" },
-      { name: "Shine" },
-      { name: "Bottom lid" },
-      { name: "Top lid" },
-    ],
-  },
-];
+const layerConfigurations = projectConfig.layerConfigurations;
 
-const shuffleLayerConfigurations = false;
+const shuffleLayerConfigurations = projectConfig.shuffleLayerConfigurations == undefined ? true : projectConfig.shuffleLayerConfigurations;
 
 const debugLogs = false;
 
-const format = {
-  width: 512,
-  height: 512,
-  smoothing: false,
-};
+const format = projectConfig.format;
 
 const gif = {
   export: false,
@@ -82,7 +68,7 @@ const extraMetadata = {};
 
 const rarityDelimiter = "#";
 
-const uniqueDnaTorrance = 10000;
+const uniqueDnaTorrance = 1000;
 
 const preview = {
   thumbPerRow: 5,
@@ -119,4 +105,6 @@ module.exports = {
   solanaMetadata,
   gif,
   preview_gif,
+  customRarities: projectConfig.customRarities,
+  renderImages: projectConfig.renderImages == undefined ? false : projectConfig.renderImages,
 };

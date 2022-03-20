@@ -1,10 +1,10 @@
-const basePath = process.cwd();
-const { NETWORK } = require(`${basePath}/constants/network.js`);
+const assert = require("assert");
+const projectPath = process.env.INIT_CWD;
+const hashlipsPath = `${__dirname}/..`;
+const { NETWORK } = require(`${hashlipsPath}/constants/network.js`);
 const fs = require("fs");
-const sha1 = require(`${basePath}/node_modules/sha1`);
-const { createCanvas, loadImage } = require(`${basePath}/node_modules/canvas`);
-const buildDir = `${basePath}/build`;
-const layersDir = `${basePath}/layers`;
+const sha1 = require('sha1');
+const { createCanvas, loadImage } = require('canvas');
 const {
   format,
   baseUri,
@@ -21,21 +21,26 @@ const {
   network,
   solanaMetadata,
   gif,
-} = require(`${basePath}/src/config.js`);
+  renderImages
+} = require(`${hashlipsPath}/src/config.js`);
+
+const buildDir = `${projectPath}/generated-files/wip/hashlips-build`;
+const defaultLayersDir = `${projectPath}/generated-files/wip/hashlips-layers`;
+
 const canvas = createCanvas(format.width, format.height);
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = format.smoothing;
 var metadataList = [];
 var attributesList = [];
 var dnaList = new Set();
-const DNA_DELIMITER = "-";
-const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
+const DNA_DELIMITER = "---";
+const HashlipsGiffer = require(`${hashlipsPath}/modules/HashlipsGiffer.js`);
 
 let hashlipsGiffer = null;
 
 const buildSetup = () => {
   if (fs.existsSync(buildDir)) {
-    fs.rmdirSync(buildDir, { recursive: true });
+    fs.rmSync(buildDir, { recursive: true });
   }
   fs.mkdirSync(buildDir);
   fs.mkdirSync(`${buildDir}/json`);
@@ -45,8 +50,23 @@ const buildSetup = () => {
   }
 };
 
-const getRarityWeight = (_str) => {
+const getRarityWeight = (path, _str, customRarities) => {
   let nameWithoutExtension = _str.slice(0, -4);
+
+  const layer = path.match(/([^\/]*)\/?$/)[1];
+
+  if (customRarities) {
+    if (customRarities[layer] === 'uniform') {
+      return 1;
+    }
+    if (customRarities[layer] && customRarities[layer][nameWithoutExtension]) {
+      assert(!isNaN(customRarities[layer][nameWithoutExtension]), `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`);
+      return customRarities[layer][nameWithoutExtension];    
+    } else {
+      assert(0, `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`);
+    }
+  }
+
   var nameWithoutWeight = Number(
     nameWithoutExtension.split(rarityDelimiter).pop()
   );
@@ -68,28 +88,28 @@ const cleanName = (_str) => {
   return nameWithoutWeight;
 };
 
-const getElements = (path) => {
+const getElements = (path, layerConfig) => {
   return fs
     .readdirSync(path)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
     .map((i, index) => {
-      if (i.includes("-")) {
-        throw new Error(`layer name can not contain dashes, please fix: ${i}`);
+      if (i.includes("---")) {
+        throw new Error(`layer name can not contain 3 dashes ("---"), please fix: ${i}`);
       }
       return {
         id: index,
         name: cleanName(i),
         filename: i,
         path: `${path}${i}`,
-        weight: getRarityWeight(i),
+        weight: getRarityWeight(path, i, layerConfig.customRarities),
       };
     });
 };
 
-const layersSetup = (layersOrder) => {
-  const layers = layersOrder.map((layerObj, index) => ({
+const layersSetup = (layerConfig) => {
+  const layers = layerConfig.layersOrder.map((layerObj, index) => ({
     id: index,
-    elements: getElements(`${layersDir}/${layerObj.name}/`),
+    elements: getElements(`${(layerConfig.layersDir ? `${projectPath}/${layerConfig.layersDir}` : '') || defaultLayersDir}/${layerObj.name}/`, layerConfig),
     name:
       layerObj.options?.["displayName"] != undefined
         ? layerObj.options?.["displayName"]
@@ -354,7 +374,7 @@ const startCreating = async () => {
     : null;
   while (layerConfigIndex < layerConfigurations.length) {
     const layers = layersSetup(
-      layerConfigurations[layerConfigIndex].layersOrder
+      layerConfigurations[layerConfigIndex]
     );
     while (
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
@@ -370,38 +390,40 @@ const startCreating = async () => {
 
         await Promise.all(loadedElements).then((renderObjectArray) => {
           debugLogs ? console.log("Clearing canvas") : null;
-          ctx.clearRect(0, 0, format.width, format.height);
-          if (gif.export) {
-            hashlipsGiffer = new HashlipsGiffer(
-              canvas,
-              ctx,
-              `${buildDir}/gifs/${abstractedIndexes[0]}.gif`,
-              gif.repeat,
-              gif.quality,
-              gif.delay
-            );
-            hashlipsGiffer.start();
-          }
-          if (background.generate) {
-            drawBackground();
-          }
-          renderObjectArray.forEach((renderObject, index) => {
-            drawElement(
-              renderObject,
-              index,
-              layerConfigurations[layerConfigIndex].layersOrder.length
-            );
+          if (renderImages) {
+            ctx.clearRect(0, 0, format.width, format.height);
             if (gif.export) {
-              hashlipsGiffer.add();
+              hashlipsGiffer = new HashlipsGiffer(
+                canvas,
+                ctx,
+                `${buildDir}/gifs/${abstractedIndexes[0]}.gif`,
+                gif.repeat,
+                gif.quality,
+                gif.delay
+              );
+              hashlipsGiffer.start();
             }
-          });
-          if (gif.export) {
-            hashlipsGiffer.stop();
+            if (background.generate) {
+              drawBackground();
+            }
+            renderObjectArray.forEach((renderObject, index) => {
+              drawElement(
+                renderObject,
+                index,
+                layerConfigurations[layerConfigIndex].layersOrder.length
+              );
+              if (gif.export) {
+                hashlipsGiffer.add();
+              }
+            });
+            if (gif.export) {
+              hashlipsGiffer.stop();
+            }
+            debugLogs
+              ? console.log("Editions left to create: ", abstractedIndexes)
+              : null;
+            saveImage(abstractedIndexes[0]);
           }
-          debugLogs
-            ? console.log("Editions left to create: ", abstractedIndexes)
-            : null;
-          saveImage(abstractedIndexes[0]);
           addMetadata(newDna, abstractedIndexes[0]);
           saveMetaDataSingleFile(abstractedIndexes[0]);
           console.log(
@@ -413,12 +435,13 @@ const startCreating = async () => {
         dnaList.add(filterDNAOptions(newDna));
         editionCount++;
         abstractedIndexes.shift();
+        failedCount = 0;
       } else {
-        console.log("DNA exists!");
+        console.log("DNA exists!", failedCount);
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
           console.log(
-            `You need more layers or elements to grow your edition to ${layerConfigurations[layerConfigIndex].growEditionSizeTo} artworks!`
+            `You need more layers or elements to grow your edition to ${layerConfigurations[layerConfigIndex].growEditionSizeTo} artworks! [layer config ${layerConfigIndex}]`
           );
           process.exit();
         }
