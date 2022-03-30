@@ -107,4 +107,5 @@ module.exports = {
   preview_gif,
   customRarities: projectConfig.customRarities,
   renderImages: projectConfig.renderImages == undefined ? false : projectConfig.renderImages,
+  hookAfterDnaGenerated: projectConfig.hookAfterDnaGenerated,
 };
