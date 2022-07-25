@@ -25,8 +25,8 @@ const {
   hookAfterDnaGenerated
 } = require(`${hashlipsPath}/src/config.js`);
 
-const buildDir = `${projectPath}/generated-files/wip/hashlips-build`;
-const defaultLayersDir = `${projectPath}/generated-files/wip/hashlips-layers`;
+const buildDir = `${projectPath}/generated-files/hashlips-build`;
+const defaultLayersDir = `${projectPath}/generated-files/hashlips-layers`;
 
 const canvas = createCanvas(format.width, format.height);
 const ctx = canvas.getContext("2d");
@@ -61,7 +61,7 @@ const getRarityWeight = (path, _str, customRarities) => {
     }
     if (customRarities[layer] && customRarities[layer][nameWithoutExtension]) {
       assert(!isNaN(customRarities[layer][nameWithoutExtension]), `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`);
-      return customRarities[layer][nameWithoutExtension];    
+      return customRarities[layer][nameWithoutExtension];
     } else {
       assert(0, `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`);
     }
@@ -226,18 +226,18 @@ const drawElement = (_renderObject, _index, _layersLen) => {
   ctx.globalCompositeOperation = _renderObject.layer.blend;
   text.only
     ? addText(
-        `${_renderObject.layer.name}${text.spacer}${_renderObject.layer.selectedElement.name}`,
-        text.xGap,
-        text.yGap * (_index + 1),
-        text.size
-      )
+      `${_renderObject.layer.name}${text.spacer}${_renderObject.layer.selectedElement.name}`,
+      text.xGap,
+      text.yGap * (_index + 1),
+      text.size
+    )
     : ctx.drawImage(
-        _renderObject.loadedImage,
-        0,
-        0,
-        format.width,
-        format.height
-      );
+      _renderObject.loadedImage,
+      0,
+      0,
+      format.width,
+      format.height
+    );
 };
 
 const constructLayerToDna = (_dna = "", _layers = []) => {
@@ -339,16 +339,13 @@ const createDna = (_layers) => {
 
   const dnaString = randNum
     .map(el =>
-      `${
-        el.id
-      }:${
-        el.filename
-      }${
-        el.bypassDNA ? "?bypassDNA=true" : ""
+      `${el.id
+      }:${el.filename
+      }${el.bypassDNA ? "?bypassDNA=true" : ""
       }`
     )
     .join(DNA_DELIMITER);
-  
+
   return dnaString;
 };
 
@@ -359,8 +356,8 @@ const writeMetaData = (_data) => {
 const saveMetaDataSingleFile = (metadata) => {
   debugLogs
     ? console.log(
-        `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
-      )
+      `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
+    )
     : null;
   fs.writeFileSync(
     `${buildDir}/json/${metadata.edition}.json`,
@@ -471,7 +468,7 @@ const startCreating = async () => {
               : null;
             saveImage(abstractedIndexes[0]);
           }
-          const metadata = addMetadata(newDna, abstractedIndexes[0]);
+          const metadata = addMetadata(newDna, abstractedIndexes[0], attributesList);
           saveMetaDataSingleFile(metadata);
           _internalMetadataList.push({
             ...metadata,
