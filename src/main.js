@@ -34,6 +34,7 @@ ctx.imageSmoothingEnabled = format.smoothing;
 var _internalMetadataList = [];
 var dnaList = new Set();
 const DNA_DELIMITER = "---";
+const EMPTY_LAYER = "__E_M_P_T_Y__L_A_Y_E_R__";
 const HashlipsGiffer = require(`${hashlipsPath}/modules/HashlipsGiffer.js`);
 
 let hashlipsGiffer = null;
@@ -42,7 +43,7 @@ const buildSetup = () => {
   if (fs.existsSync(buildDir)) {
     fs.rmSync(buildDir, { recursive: true });
   }
-  fs.mkdirSync(buildDir);
+  fs.mkdirSync(buildDir, { recursive: true });
   fs.mkdirSync(`${buildDir}/json`);
   fs.mkdirSync(`${buildDir}/images`);
   if (gif.export) {
@@ -104,6 +105,17 @@ const getElements = (path, layerConfig) => {
         weight: getRarityWeight(path, i, layerConfig.customRarities),
       };
     });
+
+    if (elements.length == 0) {
+      elements.push({
+        id: 0,
+        name: 'None',
+        filename: EMPTY_LAYER,
+        path: EMPTY_LAYER,
+        weight: 1,
+      })
+    }
+
   const nameToElement = {};
   elements.forEach((element) => {
     nameToElement[element.name] = element;
@@ -117,6 +129,7 @@ const layersSetup = (layerConfig) => {
     const {
       elements, nameToElement
     } = getElements(`${(layerConfig.layersDir ? `${projectPath}/${layerConfig.layersDir}` : '') || defaultLayersDir}/${layerObj.name}/`, layerConfig);
+
     return {
       id: index,
       elements,
@@ -142,9 +155,15 @@ const layersSetup = (layerConfig) => {
   return layers;
 };
 
-const saveImage = (_editionCount) => {
+const saveImage = (_editionCount, outputDir) => {
+  if (!outputDir) {
+    return;
+  }
+
+  const dir = `${buildDir}/${outputDir || 'images'}/`;
+  fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
-    `${buildDir}/images/${_editionCount}.png`,
+    `${dir}${_editionCount}.png`,
     canvas.toBuffer("image/png")
   );
 };
@@ -203,6 +222,10 @@ const addMetadata = (_dna, _edition, attributesList) => {
 };
 
 const loadLayerImg = async (_layer) => {
+  if (_layer.selectedElement.path == EMPTY_LAYER) {
+    return null;
+  }
+  
   try {
     return new Promise(async (resolve) => {
       const image = await loadImage(`${_layer.selectedElement.path}`);
@@ -353,14 +376,20 @@ const writeMetaData = (_data) => {
   fs.writeFileSync(`${buildDir}/metadata-full.json`, _data);
 };
 
-const saveMetaDataSingleFile = (metadata) => {
+const saveMetaDataSingleFile = (metadata, outputDir) => {
+  if (!outputDir) {
+    return;
+  }
+
   debugLogs
     ? console.log(
       `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
     )
     : null;
+  const dir = `${buildDir}/${outputDir || 'json'}/`;
+  fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
-    `${buildDir}/json/${metadata.edition}.json`,
+    `${dir}${metadata.edition}.json`,
     JSON.stringify(metadata, null, 2)
   );
 };
@@ -423,6 +452,9 @@ const startCreating = async () => {
           const attributesList = [];
           const _internalAttributeInfo = [];
           renderObjectArray.forEach(renderObject => {
+            if (renderObject == null) {
+              return;
+            }
             let selectedElement = renderObject.layer.selectedElement;
             attributesList.push({
               trait_type: renderObject.layer.name,
@@ -451,6 +483,10 @@ const startCreating = async () => {
               drawBackground();
             }
             renderObjectArray.forEach((renderObject, index) => {
+              if (renderObject == null) {
+                return;
+              }
+
               drawElement(
                 renderObject,
                 index,
@@ -466,10 +502,10 @@ const startCreating = async () => {
             debugLogs
               ? console.log("Editions left to create: ", abstractedIndexes)
               : null;
-            saveImage(abstractedIndexes[0]);
+            saveImage(abstractedIndexes[0], layerConfigurations[layerConfigIndex].imagesOutputDir);
           }
           const metadata = addMetadata(newDna, abstractedIndexes[0], attributesList);
-          saveMetaDataSingleFile(metadata);
+          saveMetaDataSingleFile(metadata, layerConfigurations[layerConfigIndex].jsonOutputDir);
           _internalMetadataList.push({
             ...metadata,
             attributes: _internalAttributeInfo
@@ -485,13 +521,14 @@ const startCreating = async () => {
         abstractedIndexes.shift();
         failedCount = 0;
       } else {
-        console.log("DNA exists!", failedCount);
+        // console.log("DNA exists!", newDna);
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
           console.log(
-            `You need more layers or elements to grow your edition to ${layerConfigurations[layerConfigIndex].growEditionSizeTo} artworks! [layer config ${layerConfigIndex}]`
+            `You need more layers or elements to grow your edition to ${layerConfigurations[layerConfigIndex].growEditionSizeTo} artworks! [${layerConfigurations[layerConfigIndex].layersDir}}`
           );
-          process.exit();
+          break;
+          // process.exit();
         }
       }
     }
