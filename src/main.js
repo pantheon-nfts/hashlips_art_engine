@@ -3,8 +3,8 @@ const projectPath = process.env.INIT_CWD;
 const hashlipsPath = `${__dirname}/..`;
 const { NETWORK } = require(`${hashlipsPath}/constants/network.js`);
 const fs = require("fs");
-const sha1 = require('sha1');
-const { createCanvas, loadImage } = require('canvas');
+const sha1 = require("sha1");
+const { createCanvas, loadImage } = require("canvas");
 const {
   format,
   baseUri,
@@ -22,7 +22,7 @@ const {
   solanaMetadata,
   gif,
   renderImages,
-  hookAfterDnaGenerated
+  hookAfterDnaGenerated,
 } = require(`${hashlipsPath}/src/config.js`);
 
 const buildDir = `${projectPath}/generated-files/hashlips-build`;
@@ -57,14 +57,20 @@ const getRarityWeight = (path, _str, customRarities) => {
   const layer = path.match(/([^\/]*)\/?$/)[1];
 
   if (customRarities) {
-    if (customRarities[layer] === 'uniform') {
+    if (customRarities[layer] === "uniform") {
       return 1;
     }
     if (customRarities[layer] && customRarities[layer][nameWithoutExtension]) {
-      assert(!isNaN(customRarities[layer][nameWithoutExtension]), `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`);
+      assert(
+        !isNaN(customRarities[layer][nameWithoutExtension]),
+        `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`
+      );
       return customRarities[layer][nameWithoutExtension];
     } else {
-      assert(0, `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`);
+      assert(
+        0,
+        `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`
+      );
     }
   }
 
@@ -90,12 +96,16 @@ const cleanName = (_str) => {
 };
 
 const getElements = (path, layerConfig) => {
+  console.log(path, fs.readdirSync(path));
   const elements = fs
     .readdirSync(path)
+    .filter((f) => ["png", "jpg", "jpeg"].includes(f.split(".").pop()))
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
     .map((i, index) => {
       if (i.includes("---")) {
-        throw new Error(`layer name can not contain 3 dashes ("---"), please fix: ${i}`);
+        throw new Error(
+          `layer name can not contain 3 dashes ("---"), please fix: ${i}`
+        );
       }
       return {
         id: index,
@@ -106,29 +116,36 @@ const getElements = (path, layerConfig) => {
       };
     });
 
-    if (elements.length == 0) {
-      elements.push({
-        id: 0,
-        name: 'None',
-        filename: EMPTY_LAYER,
-        path: EMPTY_LAYER,
-        weight: 1,
-      })
-    }
+  if (elements.length == 0) {
+    elements.push({
+      id: 0,
+      name: "None",
+      filename: EMPTY_LAYER,
+      path: EMPTY_LAYER,
+      weight: 1,
+    });
+  }
 
   const nameToElement = {};
   elements.forEach((element) => {
     nameToElement[element.name] = element;
   });
 
+  console.log(elements.map((e) => e.name));
+
   return { elements, nameToElement };
 };
 
 const layersSetup = (layerConfig) => {
   const layers = layerConfig.layersOrder.map((layerObj, index) => {
-    const {
-      elements, nameToElement
-    } = getElements(`${(layerConfig.layersDir ? `${projectPath}/${layerConfig.layersDir}` : '') || defaultLayersDir}/${layerObj.name}/`, layerConfig);
+    const { elements, nameToElement } = getElements(
+      `${
+        (layerConfig.layersDir
+          ? `${projectPath}/${layerConfig.layersDir}`
+          : "") || defaultLayersDir
+      }/${layerObj.name}/`,
+      layerConfig
+    );
 
     return {
       id: index,
@@ -160,12 +177,9 @@ const saveImage = (_editionCount, outputDir) => {
     return;
   }
 
-  const dir = `${buildDir}/${outputDir || 'images'}/`;
+  const dir = `${buildDir}/${outputDir || "images"}/`;
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    `${dir}${_editionCount}.png`,
-    canvas.toBuffer("image/png")
-  );
+  fs.writeFileSync(`${dir}${_editionCount}.png`, canvas.toBuffer("image/png"));
 };
 
 const genColor = () => {
@@ -225,7 +239,7 @@ const loadLayerImg = async (_layer) => {
   if (_layer.selectedElement.path == EMPTY_LAYER) {
     return null;
   }
-  
+
   try {
     return new Promise(async (resolve) => {
       const image = await loadImage(`${_layer.selectedElement.path}`);
@@ -249,18 +263,18 @@ const drawElement = (_renderObject, _index, _layersLen) => {
   ctx.globalCompositeOperation = _renderObject.layer.blend;
   text.only
     ? addText(
-      `${_renderObject.layer.name}${text.spacer}${_renderObject.layer.selectedElement.name}`,
-      text.xGap,
-      text.yGap * (_index + 1),
-      text.size
-    )
+        `${_renderObject.layer.name}${text.spacer}${_renderObject.layer.selectedElement.name}`,
+        text.xGap,
+        text.yGap * (_index + 1),
+        text.size
+      )
     : ctx.drawImage(
-      _renderObject.loadedImage,
-      0,
-      0,
-      format.width,
-      format.height
-    );
+        _renderObject.loadedImage,
+        0,
+        0,
+        format.width,
+        format.height
+      );
 };
 
 const constructLayerToDna = (_dna = "", _layers = []) => {
@@ -352,7 +366,12 @@ const createDna = (_layers) => {
   for (const [key, value] of Object.entries(nft)) {
     const layer = nameToLayer[key];
     const element = layer.nameToElement[value];
-    assert(element, `Element ${value} not found in layer ${key}. ${JSON.stringify(layer.nameToElement)}`);
+    assert(
+      element,
+      `Element ${value} not found in layer ${key}. ${JSON.stringify(
+        layer.nameToElement
+      )}`
+    );
     randNum.push({
       id: element.id,
       filename: element.filename,
@@ -361,11 +380,8 @@ const createDna = (_layers) => {
   }
 
   const dnaString = randNum
-    .map(el =>
-      `${el.id
-      }:${el.filename
-      }${el.bypassDNA ? "?bypassDNA=true" : ""
-      }`
+    .map(
+      (el) => `${el.id}:${el.filename}${el.bypassDNA ? "?bypassDNA=true" : ""}`
     )
     .join(DNA_DELIMITER);
 
@@ -383,10 +399,10 @@ const saveMetaDataSingleFile = (metadata, outputDir) => {
 
   debugLogs
     ? console.log(
-      `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
-    )
+        `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
+      )
     : null;
-  const dir = `${buildDir}/${outputDir || 'json'}/`;
+  const dir = `${buildDir}/${outputDir || "json"}/`;
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     `${dir}${metadata.edition}.json`,
@@ -427,9 +443,7 @@ const startCreating = async () => {
     ? console.log("Editions left to create: ", abstractedIndexes)
     : null;
   while (layerConfigIndex < layerConfigurations.length) {
-    const layers = layersSetup(
-      layerConfigurations[layerConfigIndex]
-    );
+    const layers = layersSetup(layerConfigurations[layerConfigIndex]);
     while (
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
     ) {
@@ -451,7 +465,7 @@ const startCreating = async () => {
           debugLogs ? console.log("Clearing canvas") : null;
           const attributesList = [];
           const _internalAttributeInfo = [];
-          renderObjectArray.forEach(renderObject => {
+          renderObjectArray.forEach((renderObject) => {
             if (renderObject == null) {
               return;
             }
@@ -463,7 +477,7 @@ const startCreating = async () => {
             _internalAttributeInfo.push({
               trait_type: renderObject.layer.name,
               value: selectedElement.name,
-              path: selectedElement.path
+              path: selectedElement.path,
             });
           });
           if (renderImages) {
@@ -502,13 +516,23 @@ const startCreating = async () => {
             debugLogs
               ? console.log("Editions left to create: ", abstractedIndexes)
               : null;
-            saveImage(abstractedIndexes[0], layerConfigurations[layerConfigIndex].imagesOutputDir);
+            saveImage(
+              abstractedIndexes[0],
+              layerConfigurations[layerConfigIndex].imagesOutputDir
+            );
           }
-          const metadata = addMetadata(newDna, abstractedIndexes[0], attributesList);
-          saveMetaDataSingleFile(metadata, layerConfigurations[layerConfigIndex].jsonOutputDir);
+          const metadata = addMetadata(
+            newDna,
+            abstractedIndexes[0],
+            attributesList
+          );
+          saveMetaDataSingleFile(
+            metadata,
+            layerConfigurations[layerConfigIndex].jsonOutputDir
+          );
           _internalMetadataList.push({
             ...metadata,
-            attributes: _internalAttributeInfo
+            attributes: _internalAttributeInfo,
           });
           console.log(
             `Created edition: ${abstractedIndexes[0]}, with DNA: ${sha1(

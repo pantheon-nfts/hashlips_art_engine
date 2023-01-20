@@ -27,7 +27,10 @@ const solanaMetadata = {
 // If you have selected Solana then the collection starts from 0 automatically
 const layerConfigurations = projectConfig.layerConfigurations;
 
-const shuffleLayerConfigurations = projectConfig.shuffleLayerConfigurations == undefined ? true : projectConfig.shuffleLayerConfigurations;
+const shuffleLayerConfigurations =
+  projectConfig.shuffleLayerConfigurations == undefined
+    ? true
+    : projectConfig.shuffleLayerConfigurations;
 
 const debugLogs = false;
 
@@ -58,7 +61,7 @@ const pixelFormat = {
 };
 
 const background = {
-  generate: true,
+  generate: false,
   brightness: "80%",
   static: false,
   default: "#000000",
@@ -66,7 +69,7 @@ const background = {
 
 const extraMetadata = {};
 
-const rarityDelimiter = "#";
+const rarityDelimiter = "###";
 
 const uniqueDnaTorrance = 1000;
 
@@ -106,6 +109,9 @@ module.exports = {
   gif,
   preview_gif,
   customRarities: projectConfig.customRarities,
-  renderImages: projectConfig.renderImages == undefined ? false : projectConfig.renderImages,
+  renderImages:
+    projectConfig.renderImages == undefined
+      ? false
+      : projectConfig.renderImages,
   hookAfterDnaGenerated: projectConfig.hookAfterDnaGenerated,
 };
