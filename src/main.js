@@ -55,12 +55,11 @@ const getRarityWeight = (path, _str, customRarities) => {
   let nameWithoutExtension = _str.slice(0, -4);
 
   const layer = path.match(/([^\/]*)\/?$/)[1];
-
   if (customRarities) {
     if (customRarities[layer] === "uniform") {
       return 1;
     }
-    if (customRarities[layer] && customRarities[layer][nameWithoutExtension]) {
+    if (customRarities[layer] && customRarities[layer][nameWithoutExtension] != undefined) {
       assert(
         !isNaN(customRarities[layer][nameWithoutExtension]),
         `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`
@@ -173,10 +172,6 @@ const layersSetup = (layerConfig) => {
 };
 
 const saveImage = (_editionCount, outputDir) => {
-  if (!outputDir) {
-    return;
-  }
-
   const dir = `${buildDir}/${outputDir || "images"}/`;
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(`${dir}${_editionCount}.png`, canvas.toBuffer("image/png"));
@@ -393,10 +388,6 @@ const writeMetaData = (_data) => {
 };
 
 const saveMetaDataSingleFile = (metadata, outputDir) => {
-  if (!outputDir) {
-    return;
-  }
-
   debugLogs
     ? console.log(
         `Writing metadata for ${metadata.edition}: ${JSON.stringify(metadata)}`
