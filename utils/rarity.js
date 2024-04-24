@@ -1,10 +1,11 @@
 const basePath = process.env.INIT_CWD;
 const fs = require("fs");
-const layersDir = `${basePath}/layers`;
 
 const { layerConfigurations } = require(`${basePath}/config.js`).hashlips;
 
-let rawdata = fs.readFileSync(`${basePath}/generated-files/hashlips-build/metadata-full.json`);
+let rawdata = fs.readFileSync(
+  `${basePath}/generated-files/hashlips-build/metadata-full.json`
+);
 let data = JSON.parse(rawdata);
 let editionSize = data.length;
 
@@ -12,7 +13,7 @@ let rarityData = [];
 
 for (const { attributes } of data) {
   for (const attr of attributes) {
-    attr.value = attr.value.split('#')[0];
+    attr.value = attr.value.split("#")[0];
   }
 }
 
@@ -24,19 +25,19 @@ function getElementsByName(layerName) {
   let elements = [];
   let already = {};
   for (const { attributes } of data) {
-    for (const {trait_type, value} of attributes) {
-      const clean = value.split('#')[0];
-      if (already[clean]){
+    for (const { trait_type, value } of attributes) {
+      const clean = value.split("#")[0];
+      if (already[clean]) {
         continue;
       }
       if (layerName != trait_type) {
         continue;
       }
-      elements.push({ name: clean });  
+      elements.push({ name: clean });
       already[clean] = true;
     }
   }
-  return cache[layerName] = elements;
+  return (cache[layerName] = elements);
 }
 
 // intialize layers to chart
@@ -46,7 +47,7 @@ layerConfigurations.forEach((config) => {
   layers.forEach((layer) => {
     // get elements for each layer
     let elementsForLayer = [];
-    let elements = getElementsByName(layer.name);
+    let elements = getElementsByName(layer?.options?.displayName ?? layer.name);
     elements.forEach((element) => {
       // just get name and weight for each element
       let rarityDataElement = {
@@ -88,12 +89,15 @@ data.forEach((element) => {
 for (var layer in rarityData) {
   for (var attribute in rarityData[layer]) {
     // get chance
-    let chance =
-      ((rarityData[layer][attribute].occurrence / editionSize) * 100).toFixed(2);
+    let chance = (
+      (rarityData[layer][attribute].occurrence / editionSize) *
+      100
+    ).toFixed(2);
 
     // show two decimal places in percent
-    rarityData[layer][attribute].occurrence =
-      `${rarityData[layer][attribute].occurrence} (${chance} %)`;
+    rarityData[layer][
+      attribute
+    ].occurrence = `${rarityData[layer][attribute].occurrence} (${chance} %)`;
   }
 }
 
@@ -101,7 +105,9 @@ for (var layer in rarityData) {
 for (var layer in rarityData) {
   console.log(`Trait type: ${layer}`);
   for (var trait in rarityData[layer]) {
-    console.log(`${rarityData[layer][trait].trait}: ${rarityData[layer][trait].occurrence}`);
+    console.log(
+      `  ${rarityData[layer][trait].trait}: ${rarityData[layer][trait].occurrence}`
+    );
   }
   console.log();
 }

@@ -55,21 +55,29 @@ const getRarityWeight = (path, _str, customRarities) => {
   let nameWithoutExtension = _str.slice(0, -4);
 
   const layer = path.match(/([^\/]*)\/?$/)[1];
+  const defaultRarity = customRarities.DEFAULT;
   if (customRarities) {
     if (customRarities[layer] === "uniform") {
       return 1;
     }
-    if (customRarities[layer] && customRarities[layer][nameWithoutExtension] != undefined) {
+    if (
+      customRarities[layer] &&
+      customRarities[layer][nameWithoutExtension] != undefined
+    ) {
       assert(
         !isNaN(customRarities[layer][nameWithoutExtension]),
         `customRarities['${layer}']['${nameWithoutExtension}'] is not a number (${path})`
       );
       return customRarities[layer][nameWithoutExtension];
     } else {
-      assert(
-        0,
-        `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`
-      );
+      if (!isNaN(defaultRarity)) {
+        return defaultRarity;
+      } else {
+        assert(
+          0,
+          `no rarity defined for: customRarities['${layer}']['${nameWithoutExtension}'] (${path})`
+        );
+      }
     }
   }
 
